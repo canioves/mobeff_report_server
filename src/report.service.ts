@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Report } from './report.model';
 import axios from 'axios';
@@ -17,15 +21,15 @@ export class ReportService {
       headers: dto.headers,
     });
 
-    // generate report after 10 seconds
-    setTimeout(async () => {
-      await this.generateReport(savedReport.id, dto.limit, dto.page);
-    }, 10000);
+    await this.generateReport(savedReport.id, dto.limit, dto.page);
 
     return { reportId: savedReport.id };
   }
 
   private async generateReport(id: number, limit: number, page: number) {
+    // generate report after 10 seconds
+    setTimeout(() => {}, 1000);
+
     const report = await this.reportRepository.findByPk(id);
 
     let url = `${report.serviceName}/${report.endpoint}`;
@@ -37,24 +41,31 @@ export class ReportService {
       url += `?page=${page}`;
     }
 
-    const response = await axios.get(url);
-    const data = response.data.pageOfProducts;
+    try {
+      const response = await axios.get(url);
+      const data = response.data.pageOfProducts;
 
-    const wb = new Excel.Workbook();
-    const sheet = wb.addWorksheet('Report');
+      const wb = new Excel.Workbook();
+      const sheet = wb.addWorksheet('Report');
 
-    sheet.addRow(report.headers);
-    data.forEach((item: object) => {
-      sheet.addRow(Object.values(item));
-    });
+      sheet.addRow(report.headers);
+      data.forEach((item: object) => {
+        sheet.addRow(Object.values(item));
+      });
 
-    const file = `reports\\report${id}.xlsx`;
-    await wb.xlsx.writeFile(file);
+      const file = `reports\\report${id}.xlsx`;
+      await wb.xlsx.writeFile(file);
 
-    report.status = 'done';
-    report.fileUrl = __dirname.replace('\\dist', '') + '\\' + file;
-
-    await report.save();
+      report.status = 'done';
+      report.fileUrl = __dirname.replace('\\dist', '') + '\\' + file;
+    } catch (error) {
+      report.status = 'failed';
+      throw new InternalServerErrorException({
+        message: 'Something went wrong',
+      });
+    } finally {
+      await report.save();
+    }
   }
 
   async getReportStatus(id: number) {
