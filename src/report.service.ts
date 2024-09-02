@@ -28,7 +28,7 @@ export class ReportService {
 
   private async generateReport(id: number, limit: number, page: number) {
     // generate report after 10 seconds
-    setTimeout(() => {}, 1000);
+    setTimeout(() => {}, 10000);
 
     const report = await this.reportRepository.findByPk(id);
 
