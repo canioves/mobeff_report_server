@@ -1,5 +1,6 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { ReportService } from './report.service';
+import { CreateReportDto } from './dto/createReport.dto';
 
 @Controller('report')
 export class ReportController {
@@ -8,21 +9,13 @@ export class ReportController {
   @Post('/create')
   async createReport(
     @Body()
-    body: {
-      serviceName: string;
-      endpoint: string;
-      headers: string[];
-      limit: number | null;
-      page: number | null;
-    },
+    dto: CreateReportDto,
   ) {
-    console.log(body);
-    return await this.reportService.createReport(
-      body.serviceName,
-      body.endpoint,
-      body.headers,
-      body.limit,
-      body.page,
-    );
+    return await this.reportService.createReport(dto);
+  }
+
+  @Get('/:id')
+  async getReportStatus(@Param('id') id: number) {
+    return await this.reportService.getReportStatus(id);
   }
 }
